@@ -43,8 +43,8 @@ async def handle_message(message: Message):
             await message.answer(response)
         except Exception as e:
             await message.answer(f"Произошла ошибка: {e}")
-        finally:
-            parser.close()
+ #       finally:
+ #           parser.close()
     else:
         await message.answer("Пожалуйста, отправьте корректный URL объявления с Avito.")
 

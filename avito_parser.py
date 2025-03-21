@@ -86,8 +86,8 @@ class AvitoParser:
         address_element = self.driver.find_element(By.CSS_SELECTOR, "span.style-item-address__string-wt61A")
         self.full_address = address_element.text.strip()
 
-    def close(self):
-        self.driver.quit()
+#    def close(self):
+#        self.driver.quit()
 
 if __name__ == "__main__":
     url = 'https://www.avito.ru/ekaterinburg/kvartiry/1-k._kvartira_406_m_69_et._4574477371?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6Ik9Ra1c5RzE3TUY5c0R2NW8iO32sRl6AJgAAAA'
