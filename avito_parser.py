@@ -1,6 +1,5 @@
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,31 +10,22 @@ class AvitoParser:
         self.driver = self._setup_driver()
 
     def _setup_driver(self):
-        firefox_options = Options()
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-software-rasterizer")
 
-        # Отключаем изображения
-        firefox_options.set_preference("permissions.default.image", 2)
+        prefs = {
+            "profile.managed_default_content_settings.images": 2,
+            "profile.managed_default_content_settings.javascript": 2,
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
 
-        # Отключаем JavaScript
-        firefox_options.set_preference("javascript.enabled", False)
-
-        # Отключаем WebGL
-        firefox_options.set_preference("webgl.disabled", True)
-
-        # Уменьшаем таймауты
-        firefox_options.set_preference("network.http.response.timeout", 10)
-        firefox_options.set_preference("network.http.connection-timeout", 10)
-
-        # Отключаем автоматическое обновление
-        firefox_options.set_preference("app.update.auto", False)
-        firefox_options.set_preference("app.update.enabled", False)
-
-        # Включаем headless-режим
-        firefox_options.add_argument("--headless")
-
-        # Указываем путь к geckodriver
-        service = Service("/usr/local/bin/geckodriver")
-        return webdriver.Firefox(service=service, options=firefox_options)
+        return webdriver.Chrome(options=chrome_options)
 
     def _extract_param(self, params_soup, param_name):
         for li in params_soup.find_all('li', class_='params-paramsList__item-_2Y2O'):
