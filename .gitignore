@@ -9,3 +9,7 @@ avito_parser_old.py
 venv/
 avito_parser_old2.py
 Dockerfile_old
+avito_parser copy.py
+.env
+__pycache__/avito_parser.cpython-313.pyc
+__pycache__/loadenv.cpython-313.pyc

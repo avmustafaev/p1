@@ -1,2 +1,4 @@
+aiogram==3.19.0
 beautifulsoup4==4.13.3
+python-dotenv==1.0.1
 selenium==4.29.0

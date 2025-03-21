@@ -11,5 +11,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY avito_parser.py .
+COPY bot.py .
+COPY loadenv.py .
 
-CMD ["python", "avito_parser.py"]
+CMD ["python", "bot.py"]
