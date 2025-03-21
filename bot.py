@@ -10,6 +10,7 @@ from loadenv import envi
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+parser = AvitoParser()
 
 # Инициализация бота и диспетчера
 bot = Bot(
@@ -29,7 +30,6 @@ async def handle_message(message: Message):
     url = message.text
     if "avito.ru" in url:
         await message.answer("Обрабатываю запрос...")
-        parser = AvitoParser()
         try:
             parser.parse(url)
             response = (
