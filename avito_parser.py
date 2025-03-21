@@ -94,7 +94,11 @@ class AvitoParser:
         self.driver.quit()
 
 if __name__ == "__main__":
-    url = 'https://www.avito.ru/ekaterinburg/kvartiry/1-k._kvartira_406_m_69_et._4574477371?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6Ik9Ra1c5RzE3TUY5c0R2NW8iO32sRl6AJgAAAA'
+    url0 = 'https://www.avito.ru/ekaterinburg/kvartiry/1-k._kvartira_406_m_69_et._4574477371?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6Ik9Ra1c5RzE3TUY5c0R2NW8iO32sRl6AJgAAAA'
+    url1 = 'https://www.avito.ru/ekaterinburg/kvartiry/kvartira-studiya_333_m_2232_et._4655353841?context=H4sIAAAAAAAA_wFOALH_YToyOntzOjM6InNyYyI7czo4OiJmZWF0dXJlZCI7czoxOiJ4IjtzOjMxOiJqenR6ZTFxOTRrazF6bDFzdmhrbnEwdmJ2MWF2eXI2Ijt9PAzBz04AAAA'
+    url2 = 'https://www.avito.ru/ekaterinburg/kvartiry/2-k._kvartira_416_m_210_et._4733833349?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6IldxVDhpbG12M1FZTXUwU0ciO33KGfC6JgAAAA'
     parser = AvitoParser()
-    parser.parse(url)
+    parser.parse(url0)
+    parser.parse(url1)
+    parser.parse(url2)
     parser.close()
