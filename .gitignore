@@ -13,3 +13,4 @@ avito_parser copy.py
 .env
 __pycache__/avito_parser.cpython-313.pyc
 __pycache__/loadenv.cpython-313.pyc
+bot_old.py

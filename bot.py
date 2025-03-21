@@ -3,21 +3,20 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram.utils.token import TokenValidationError
+from aiogram.client.default import DefaultBotProperties
 from avito_parser import AvitoParser
 from loadenv import envi
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Инициализация бота и диспетчера
-try:
-    bot = Bot(token=envi.token)
-    dp = Dispatcher()
-except TokenValidationError:
-    logging.error("Неверный токен бота. Проверьте переменную окружения TOKEN.")
-    exit(1)
+bot = Bot(
+    token=envi.token,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Указываем parse_mode здесь
+)
+dp = Dispatcher()
 
 # Обработчик команды /start
 @dp.message(Command("start"))
@@ -38,13 +37,13 @@ async def handle_message(message: Message):
                 f"💵 {parser.price_value}₽\n\n"
                 f"🚪 {parser.rooms}комн.\n"
                 f"📐 {parser.total_area}м²\n"
-                f"🪜 {parser.floor}"
+                f"🪜 {parser.floor}\n\n"
+                f'<a href="{url}">🔗 Переход на объявление</a>'
             )
-            await message.answer(response)
+            await message.answer(response, disable_web_page_preview=True)
         except Exception as e:
-            await message.answer(f"Произошла ошибка: {e}")
- #       finally:
- #           parser.close()
+            logger.error(f"Ошибка при парсинге: {e}")
+            await message.answer("Произошла ошибка при обработке запроса. Попробуйте ещё раз.")
     else:
         await message.answer("Пожалуйста, отправьте корректный URL объявления с Avito.")
 
