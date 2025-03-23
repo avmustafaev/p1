@@ -2,42 +2,18 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import hashlib
-from enum import Enum
-
-class EstateParam(Enum):
-    ROOMS = ("Количество комнат", "🚪 Комнат: {}")
-    TOTAL_AREA = ("Общая площадь", "📐 Общая площадь: {}")
-    FLOOR = ("Этаж", "🪜  Этаж: {}")
-    PLOT_AREA = ("Площадь участка", "🌳 Площадь участка: {}")
-    HOUSE_TYPE = ("Тип дома", "🏡 Тип дома: {}")
-    WALL_MATERIAL = ("Материал стен", "🧱 Материал стен: {}")
-    BUILD_YEAR = ("Год постройки", "📅 Год постройки: {}")
-    DISTANCE_TO_CENTER = ("Расстояние до центра города", "📍 Расстояние до центра: {}")
-    LAND_CATEGORY = ("Категория земель", "🏞️  Категория земель: {}")
-    GARAGE_TYPE = ("Тип гаража", "🚗 Тип гаража: {}")
-    PARKING_TYPE = ("Тип машиноместа", "🅿️ Тип машиноместа: {}")
-    ROOM_AREA = ("Площадь комнаты", "🛏️  Площадь комнаты: {}")
-    ROOMS_IN_APARTMENT = ("Комнат в квартире", "🏠 Комнат в квартире: {}")
-    HOUSE_AREA = ("Площадь дома", "🏠 Площадь дома: {}")
-    FLOORS_IN_HOUSE = ("Этажей в доме", "🏠 Этажей в доме: {}")
-    AREA = ("Площадь:", "📐 Площадь: {}")
-
-    def __init__(self, param_name, display_format):
-        self.param_name = param_name
-        self.display_format = display_format
 
 class AvitoParser:
     def __init__(self, cache_dir="cache"):
         self.price_value = None
         self.full_address = None
-        self.type_estate = None
+        self.rooms = None
+        self.total_area = None
+        self.floor = None
+        self.type_estate = None  # Добавляем переменную для типа недвижимости
         self.cache_dir = cache_dir
         # Создаем директорию для кэша, если её нет
         os.makedirs(self.cache_dir, exist_ok=True)
-
-        # Инициализируем все параметры как None
-        for param in EstateParam:
-            setattr(self, param.name.lower(), None)
 
     def _get_cache_filename(self, url):
         # Хэшируем URL для создания уникального имени файла
@@ -58,7 +34,7 @@ class AvitoParser:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         response = requests.get(url, headers=headers)
-        #print(f'Адрес новый, скачиваем файл: {cache_file}')
+        print(f'Адрес новый, скачиваем файл: {cache_file}')
         if response.status_code != 200:
             raise Exception(f"Ошибка при загрузке страницы: {response.status_code}")
 
@@ -67,7 +43,7 @@ class AvitoParser:
             file.write(response.text)
 
         return response.text
-
+    
     def _process_address(self, address):
         parts = address.split(',')
         if 'ул.' in parts[-2]:
@@ -95,9 +71,6 @@ class AvitoParser:
             'Гараж,': 'Гараж',
             'Машиноместо': 'Машиноместо'
         }
-        
-        #print(f'🌟 Весь заголовок: {title}')
-        
         # Ищем тип недвижимости в заголовке
         for search_string, estate_type in estate_types_mapping.items():
             if search_string in title:
@@ -106,28 +79,17 @@ class AvitoParser:
         return "Не указано"
 
     def _extract_param(self, params_soup, param_name):
+        """
+        Извлекает значение параметра из блока параметров.
+        :param params_soup: BeautifulSoup-объект блока параметров.
+        :param param_name: Название параметра для поиска.
+        :return: Значение параметра или None, если параметр не найден.
+        """
         for li in params_soup.find_all('li', class_='params-paramsList__item-_2Y2O'):
             span = li.find('span', class_='styles-module-noAccent-l9CMS')
             if span and param_name in span.text:
                 return span.next_sibling.strip()
-        return None
-    
-    
-
-    def _format_price(self, price):
-        """
-        Форматирует цену, добавляя разделители тысяч.
-        :param price: Цена в виде строки или числа.
-        :return: Отформатированная цена с разделителями тысяч.
-        """
-        try:
-            # Преобразуем цену в число, если это возможно
-            price_num = int(price.replace(" ", "").replace("₽", ""))
-            # Форматируем с разделителями тысяч
-            return f"{price_num:,}".replace(",", " ")
-        except (ValueError, AttributeError):
-            # Если цена не может быть преобразована в число, возвращаем как есть
-            return
+        return None  # Если параметр не найден
 
     def parse(self, url):
         # Скачиваем HTML
@@ -143,16 +105,27 @@ class AvitoParser:
         # Извлекаем цену
         price_span = soup.find('span', {'itemprop': 'price'})
         self.price_value = price_span.get('content', 'Не указано') if price_span else 'Не указано'
-        self.price_value = self._format_price(self.price_value)
 
         # Извлекаем параметры, если блок параметров существует
         if params_block := soup.find('div', {'data-marker': 'item-view/item-params'}):
             params_soup = BeautifulSoup(params_block.decode_contents(), 'html.parser')
 
             # Извлекаем все параметры
-            for param in EstateParam:
-                value = self._extract_param(params_soup, param.param_name)
-                setattr(self, param.name.lower(), value)
+            self.rooms = self._extract_param(params_soup, "Количество комнат")
+            self.total_area = self._extract_param(params_soup, "Общая площадь")
+            self.floor = self._extract_param(params_soup, "Этаж:")
+            self.plot_area = self._extract_param(params_soup, "Площадь участка")
+            self.house_type = self._extract_param(params_soup, "Тип дома")
+            self.wall_material = self._extract_param(params_soup, "Материал стен")
+            self.build_year = self._extract_param(params_soup, "Год постройки")
+            self.distance_to_center = self._extract_param(params_soup, "Расстояние до центра города")
+            self.land_category = self._extract_param(params_soup, "Категория земель")
+            self.garage_type = self._extract_param(params_soup, "Тип гаража")
+            self.parking_type = self._extract_param(params_soup, "Тип машиноместа")
+            self.room_area = self._extract_param(params_soup, "Площадь комнаты")
+            self.rooms_in_apartment = self._extract_param(params_soup, "Комнат в квартире")
+            self.house_area = self._extract_param(params_soup, "Площадь дома")
+            self.floors_in_house = self._extract_param(params_soup, "Этажей в доме")
 
         # Извлекаем адрес
         address_element = soup.find('span', class_='style-item-address__string-wt61A')
@@ -160,22 +133,54 @@ class AvitoParser:
         self.full_address = self._process_address(self.full_address)
 
         # Формируем итоговую строку
-        result = []
-        result.append(f"🌟 {self.type_estate}")
-        result.append(f"💵 {self.price_value}₽\n")
-        result.append(f"⛳️ {self.full_address}\n")
+        result = [f"⛳️ {self.full_address}"]
+        result.append(f"🏠 Тип недвижимости: {self.type_estate}")
+        result.append(f"💵 {self.price_value}₽")
 
-
-        # Динамически добавляем параметры, если они не None
-        for param in EstateParam:
-            value = getattr(self, param.name.lower())
-            if value is not None:
-                result.append(param.display_format.format(value))
-
+        # Добавляем параметры, если они не None
+        if self.rooms:
+            result.append(f"🚪 Комнат: {self.rooms}")
+        if self.total_area:
+            result.append(f"📐 Общая площадь: {self.total_area} м²")
+        if self.floor:
+            result.append(f"🪜 Этаж: {self.floor}")
+        if self.house_type:
+            result.append(f"🏡 Тип дома: {self.house_type}")
+        if self.wall_material:
+            result.append(f"🧱 Материал стен: {self.wall_material}")
+        if self.build_year:
+            result.append(f"📅 Год постройки: {self.build_year}")
+        if self.distance_to_center:
+            result.append(f"📍 Расстояние до центра: {self.distance_to_center}")
+        if self.plot_area:
+            result.append(f"🌳 Площадь участка: {self.plot_area}")
+        if self.land_category:
+            result.append(f"🏞️ Категория земель: {self.land_category}")
+        if self.garage_type:
+            result.append(f"🚗 Тип гаража: {self.garage_type}")
+        if self.parking_type:
+            result.append(f"🅿️ Тип машиноместа: {self.parking_type}")
+        if self.room_area:
+            result.append(f"🛏️ Площадь комнаты: {self.room_area}")
+        if self.rooms_in_apartment:
+            result.append(f"🏠 Комнат в квартире: {self.rooms_in_apartment}")
+        if self.house_area:
+            result.append(f"🏠 Площадь дома: {self.house_area}")
+        if self.floors_in_house:
+            result.append(f"🏠 Этажей в доме: {self.floors_in_house}")
+        result.append('\n')
         # Объединяем строки с переносами
-        result.append('\n\n')
         return "\n".join(result)
 
+    def _extracted_from_parse_20(self, params_block):
+        params_soup = BeautifulSoup(params_block.decode_contents(), 'html.parser')
+        self.rooms = self._extract_param(params_soup, "Количество комнат")
+        self.total_area = self._extract_param(params_soup, "Общая площадь")
+        self.floor = self._extract_param(params_soup, "Этаж")
+
+        # Очищаем данные
+        self.total_area = self.total_area.replace("\u00A0м\u00B2", "").replace(" м\u00B2", "")
+        self.floor = self.floor.replace(" из ", "/")
 
 if __name__ == "__main__":
     url0 = 'https://www.avito.ru/ekaterinburg/kvartiry/1-k._kvartira_406_m_69_et._4574477371?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6Ik9Ra1c5RzE3TUY5c0R2NW8iO32sRl6AJgAAAA'
