@@ -31,16 +31,8 @@ async def handle_message(message: Message):
     if "avito.ru" in url:
         await message.answer("Обрабатываю запрос...")
         try:
-            parser.parse(url)
-            response = (
-                f"📍 {parser.full_address}\n"
-                f"💵 {parser.price_value}₽\n\n"
-                f"🚪 {parser.rooms}комн.\n"
-                f"📐 {parser.total_area}м²\n"
-                f"🪜 {parser.floor}\n\n"
-                f'<a href="{url}">🔗 Переход на объявление</a>'
-            )
-            await message.answer(response, disable_web_page_preview=True)
+            response = (f'{parser.parse(url)}\n<a href="{url}">🔗 Переход на объявление</a>')
+            await message.answer(str(response), disable_web_page_preview=True)
         except Exception as e:
             logger.error(f"Ошибка при парсинге: {e}")
             await message.answer("Произошла ошибка при обработке запроса. Попробуйте ещё раз.")

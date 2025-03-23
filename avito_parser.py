@@ -2,6 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import hashlib
+import json
 from enum import Enum
 
 class EstateParam(Enum):
@@ -42,30 +43,15 @@ class AvitoParser:
     def _get_cache_filename(self, url):
         # Хэшируем URL для создания уникального имени файла
         url_hash = hashlib.md5(url.encode()).hexdigest()
-        return os.path.join(self.cache_dir, f"{url_hash}.html")
+        return os.path.join(self.cache_dir, f"{url_hash}.json")
 
     def _download_html(self, url):
-        cache_file = self._get_cache_filename(url)
-
-        # Если файл с кэшем существует, читаем из него
-        if os.path.exists(cache_file):
-            #print(f'Файл {cache_file} существует')
-            with open(cache_file, "r", encoding="utf-8") as file:
-                return file.read()
-
-        # Если файла нет, скачиваем HTML
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         response = requests.get(url, headers=headers)
-        #print(f'Адрес новый, скачиваем файл: {cache_file}')
         if response.status_code != 200:
             raise Exception(f"Ошибка при загрузке страницы: {response.status_code}")
-
-        # Сохраняем HTML в кэш
-        with open(cache_file, "w", encoding="utf-8") as file:
-            file.write(response.text)
-
         return response.text
 
     def _process_address(self, address):
@@ -80,7 +66,6 @@ class AvitoParser:
         return address
 
     def _extract_type_estate(self, title):
-        # Словарь для сопоставления строк поиска и значений для сохранения
         estate_types_mapping = {
             'квартира': 'Квартира',
             'Квартира-студия': 'Студия',
@@ -96,9 +81,6 @@ class AvitoParser:
             'Машиноместо': 'Машиноместо'
         }
         
-        #print(f'🌟 Весь заголовок: {title}')
-        
-        # Ищем тип недвижимости в заголовке
         for search_string, estate_type in estate_types_mapping.items():
             if search_string in title:
                 return estate_type
@@ -111,25 +93,22 @@ class AvitoParser:
             if span and param_name in span.text:
                 return span.next_sibling.strip()
         return None
-    
-    
 
     def _format_price(self, price):
-        """
-        Форматирует цену, добавляя разделители тысяч.
-        :param price: Цена в виде строки или числа.
-        :return: Отформатированная цена с разделителями тысяч.
-        """
         try:
-            # Преобразуем цену в число, если это возможно
             price_num = int(price.replace(" ", "").replace("₽", ""))
-            # Форматируем с разделителями тысяч
             return f"{price_num:,}".replace(",", " ")
         except (ValueError, AttributeError):
-            # Если цена не может быть преобразована в число, возвращаем как есть
-            return
+            return price
 
     def parse(self, url):
+        cache_file = self._get_cache_filename(url)
+
+        # Если файл с кэшем существует, читаем из него
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as file:
+                return json.load(file)
+
         # Скачиваем HTML
         html = self._download_html(url)
 
@@ -138,7 +117,7 @@ class AvitoParser:
 
         # Извлекаем заголовок страницы
         title = soup.find('title').text if soup.find('title') else "Не указано"
-        self.type_estate = self._extract_type_estate(title)  # Извлекаем тип недвижимости
+        self.type_estate = self._extract_type_estate(title)
 
         # Извлекаем цену
         price_span = soup.find('span', {'itemprop': 'price'})
@@ -161,10 +140,9 @@ class AvitoParser:
 
         # Формируем итоговую строку
         result = []
-        result.append(f"🌟 {self.type_estate}")
+        result.append(f"🌟 <b>{self.type_estate}</b>")
         result.append(f"💵 {self.price_value}₽\n")
         result.append(f"⛳️ {self.full_address}\n")
-
 
         # Динамически добавляем параметры, если они не None
         for param in EstateParam:
@@ -174,7 +152,13 @@ class AvitoParser:
 
         # Объединяем строки с переносами
         result.append('\n\n')
-        return "\n".join(result)
+        result_str = "\n".join(result)
+
+        # Сохраняем результат в кэш
+        with open(cache_file, "w", encoding="utf-8") as file:
+            json.dump(result_str, file, ensure_ascii=False)
+
+        return result_str
 
 
 if __name__ == "__main__":
@@ -192,14 +176,3 @@ if __name__ == "__main__":
     url11 = 'https://www.avito.ru/ekaterinburg/garazhi_i_mashinomesta/mashinomesto_15_m_4547294076?context=H4sIAAAAAAAA_wEmANn_YToxOntzOjE6IngiO3M6MTY6IjhrOVdjRmdwVmRoMkFtQloiO30uAaclJgAAAA'
     parser = AvitoParser()
     print(parser.parse(url0))
-    print(parser.parse(url1))
-    print(parser.parse(url2))
-    print(parser.parse(url3))
-    print(parser.parse(url4))
-    print(parser.parse(url5))
-    print(parser.parse(url6))
-    print(parser.parse(url7))
-    print(parser.parse(url8))
-    print(parser.parse(url9))
-    print(parser.parse(url10))
-    print(parser.parse(url11))
